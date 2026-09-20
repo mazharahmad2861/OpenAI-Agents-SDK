@@ -70,7 +70,7 @@ async def main():
 
         result = await Runner.run(
             agent,
-            "Hi, my name is Ed.",
+            "Hi, my name is Mazhar.",
             session=session,
         )
 
@@ -114,7 +114,7 @@ async def main():
 
     streamed_result = Runner.run_streamed(
         agent,
-        "Explain what an AI agent is in a few sentences.",
+        "Explain what an A2A protocol is in a few sentences.",
     )
 
     async for event in streamed_result.stream_events():
