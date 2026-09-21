@@ -1,6 +1,6 @@
 import os
-import smtplib
 import asyncio
+import smtplib
 
 from email.message import EmailMessage
 from dotenv import load_dotenv
@@ -15,12 +15,13 @@ from agents import (
 )
 
 
+# ============================================================
+# Environment
+# ============================================================
+
 load_dotenv()
 
 
-# ============================================================
-# Environment Variables
-# ============================================================
 
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_APP_PASSWORD = os.getenv("EMAIL_APP_PASSWORD")
@@ -34,18 +35,13 @@ RECIPIENTS = [
 
 
 # ============================================================
-# Groq OpenAI-Compatible Client
+# Groq Model
 # ============================================================
 
 groq_client = AsyncOpenAI(
     api_key=os.getenv("GROQ_API_KEY"),
     base_url="https://api.groq.com/openai/v1",
 )
-
-
-# ============================================================
-# Groq Model
-# ============================================================
 
 model = OpenAIChatCompletionsModel(
     model="openai/gpt-oss-20b",
@@ -54,18 +50,17 @@ model = OpenAIChatCompletionsModel(
 
 
 # ============================================================
-# Common Sales Agent Instructions
+# Common Instructions
 # ============================================================
 
 intro = """
 You are a sales agent working for ComplAI,
-a company that provides a SaaS tool for ensuring
-SOC2 compliance and preparing for audits, powered by AI.
+a company that provides a SaaS tool for ensuring SOC2
+compliance and preparing for audits, powered by AI.
 
 You write cold sales emails.
 
 Sender information:
-
 Name: Mazhar Ahmad
 Role: Senior Sales Executive
 Company: ComplAI
@@ -73,98 +68,78 @@ Phone: +91 XXXXX XXXXX
 Website: https://complai.com
 
 Never use placeholders such as:
-[Your Name]
-[Phone]
-[Website]
-[Your Website]
-[your name]
-[your phone]
-[your website]  
-Hi [Recipient’s Name], 
-
-Just say "Hi" or "Hello".
+[Your Name], [Phone], [Website], [your name], etc.
 
 Always use the actual sender information provided above.
 
-The email should sound natural and human.
-Do not mention that you are an AI.
+Never mention that you are an AI.
 Do not invent sender information.
 """
 
 
 # ============================================================
-# Three Different Sales Agents
+# Agent-Specific Instructions
 # ============================================================
 
-instructions1 = intro + """
-
+professional_instructions = """
 Your email style is professional, serious,
 with gravitas and credibility.
 
-Focus on:
-- Trust
-- Business value
-- SOC2 compliance
-- Audit preparation
-- Clear and credible communication
+Focus on trust, business value, SOC2 compliance,
+and audit preparation.
 
 Avoid excessive marketing language.
 """
 
 
-instructions2 = intro + """
-
+humorous_instructions = """
 Your email style is witty, engaging, and humorous.
 
 Use light humor where appropriate while remaining
 professional and credible.
 
-The humor should support the sales message,
-not distract from it.
-
-Avoid sounding like a comedy script.
+Do not let the humor distract from the sales message.
 """
 
 
-instructions3 = intro + """
-
+executive_instructions = """
 Your email style is concise, direct, and to the point,
 in the style of a busy senior executive.
 
-Keep the message short.
-
-Focus on:
-- The prospect's problem
-- The value of ComplAI
-- A clear reason to respond
+Focus on the prospect's problem, the value of ComplAI,
+and a clear call to action.
 
 Avoid unnecessary explanations and filler.
 """
 
 
-sales_agent1 = Agent(
+# ============================================================
+# Sales Writer Agents
+# ============================================================
+
+professional_agent = Agent(
     name="Professional Sales Agent",
-    instructions=instructions1,
+    instructions=intro + professional_instructions,
     model=model,
 )
 
 
-sales_agent2 = Agent(
+humorous_agent = Agent(
     name="Humorous Sales Agent",
-    instructions=instructions2,
+    instructions=intro + humorous_instructions,
     model=model,
 )
 
 
-sales_agent3 = Agent(
+executive_agent = Agent(
     name="Executive Sales Agent",
-    instructions=instructions3,
+    instructions=intro + executive_instructions,
     model=model,
 )
 
 
 # ============================================================
-# Email Sending Function
+# Email Function
 # ============================================================
 
 def send_email(
@@ -172,7 +147,6 @@ def send_email(
     text_body: str,
     html_body: str,
 ):
-
     msg = EmailMessage()
 
     msg["From"] = EMAIL_ADDRESS
@@ -189,7 +163,6 @@ def send_email(
         EMAIL_SMTP_SERVER,
         587,
     ) as server:
-
         server.starttls()
 
         server.login(
@@ -214,9 +187,9 @@ def send_email_tool(
     Send the selected sales email to all configured recipients.
 
     Args:
-        subject: The subject of the email.
-        text_body: The plain-text email body.
-        html_body: The HTML email body.
+        subject: Email subject.
+        text_body: Plain-text email body.
+        html_body: HTML email body.
     """
 
     send_email(
@@ -229,37 +202,69 @@ def send_email_tool(
 
 
 # ============================================================
-# Convert Sales Agents into Tools
+# Convert Writer Agents into Tools
 # ============================================================
 
 description = """
-Use this tool to write a cold sales email.
+Use this tool to write a cold sales email for ComplAI.
 
-In the input, simply instruct the agent to write
-a sales email.
-
-The agent already knows:
-- ComplAI's business
-- The sender information
-- Its assigned writing style
+Simply instruct the agent to write a sales email.
+The agent already knows the company information,
+sender information, and its assigned writing style.
 """
 
 
-tool1 = sales_agent1.as_tool(
-    tool_name="sales_email_writer_1",
+professional_tool = professional_agent.as_tool(
+    tool_name="professional_sales_writer",
     tool_description=description,
 )
 
 
-tool2 = sales_agent2.as_tool(
-    tool_name="sales_email_writer_2",
+humorous_tool = humorous_agent.as_tool(
+    tool_name="humorous_sales_writer",
     tool_description=description,
 )
 
 
-tool3 = sales_agent3.as_tool(
-    tool_name="sales_email_writer_3",
+executive_tool = executive_agent.as_tool(
+    tool_name="executive_sales_writer",
     tool_description=description,
+)
+
+
+# ============================================================
+# Sales Sender
+# ============================================================
+
+sales_sender = Agent(
+    name="Sales Sender",
+    instructions="""
+You are the Sales Sender at ComplAI.
+
+You will receive three cold sales email drafts
+from the Sales Manager.
+
+Review all three drafts and select exactly ONE.
+
+Evaluate them based on:
+
+- Clarity
+- Professionalism
+- Persuasiveness
+- Relevance
+- Natural tone
+- Conciseness
+- Call to action
+
+After selecting the best draft, use send_email_tool
+to send ONLY that email.
+
+Send exactly ONE email.
+
+Do not send the other drafts.
+""",
+    tools=[send_email_tool],
+    model=model,
 )
 
 
@@ -270,66 +275,45 @@ tool3 = sales_agent3.as_tool(
 manager_instructions = """
 You are a Sales Manager at ComplAI.
 
-Your job is to create and send the most effective
-cold sales email.
+Your job is to coordinate the sales email creation process.
 
-Follow this workflow exactly.
+Follow these steps exactly:
 
-1. GENERATE DRAFTS
+1. Generate Drafts
 
-Use ALL THREE sales email writer tools:
+Use ALL THREE sales writer tools:
 
-- sales_email_writer_1
-- sales_email_writer_2
-- sales_email_writer_3
+- professional_sales_writer
+- humorous_sales_writer
+- executive_sales_writer
 
-Generate one draft from each agent.
+Generate one email from each agent.
 
-Do not proceed until all three drafts are available.
+Do not proceed until all three drafts are ready.
 
-2. EVALUATE
+2. Handoff
 
-Review all three drafts.
+Once all three drafts are ready,
+handoff to the Sales Sender.
 
-Compare them based on:
+The Sales Sender will review the drafts,
+select the best one, and send it.
 
-- Clarity
-- Professionalism
-- Persuasiveness
-- Relevance to a potential ComplAI customer
-- Natural human tone
-- Conciseness
-- Strength of the call to action
-
-3. SELECT
-
-Select exactly ONE draft.
-
-Do not combine multiple drafts unless necessary.
-
-4. SEND
-
-Use send_email_tool to send ONLY the selected draft.
-
-Send exactly ONE email.
-
-Never send all three drafts.
-
-The final email must contain:
-
-- Subject
-- Plain-text body
-- HTML body
+Do not send an email yourself.
 """
 
 
-tools = [tool1, tool2, tool3, send_email_tool]
-
-# Manager agent 
 sales_manager = Agent(
     name="Sales Manager",
     instructions=manager_instructions,
-    tools=tools,
+    tools=[
+        professional_tool,
+        humorous_tool,
+        executive_tool,
+    ],
+    handoffs=[
+        sales_sender,
+    ],
     model=model,
 )
 
@@ -341,15 +325,19 @@ sales_manager = Agent(
 task = """
 Create a cold sales email for ComplAI.
 
-Generate three different versions using all three
-sales email writer tools.
+Generate three different versions:
 
-Review the three drafts.
+1. Professional
+2. Humorous
+3. Executive
 
-Select the single strongest draft.
+Use all three sales writer tools.
 
-Then use send_email_tool to send only that selected
-email to the configured sales recipients.
+Once all three drafts are ready,
+handoff to the Sales Sender.
+
+The Sales Sender will review the drafts,
+select one, and send only that email.
 """
 
 
@@ -359,7 +347,7 @@ email to the configured sales recipients.
 
 async def main():
 
-    with trace("Sales Manager"):
+    with trace("Sales Manager - Handoff Workflow"):
 
         result = await Runner.run(
             sales_manager,
