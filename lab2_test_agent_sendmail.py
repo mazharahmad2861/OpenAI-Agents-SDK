@@ -119,4 +119,8 @@ result = Runner.run_sync(
     """
 )
 
-print(result.final_output)
+print(result.final_output)  
+
+# inspect the conversation/ messages involved in the agent's reasoning
+messages2 = result.to_input_list()
+print(messages2)
