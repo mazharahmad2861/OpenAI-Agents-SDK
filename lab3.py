@@ -286,18 +286,7 @@ def send_email(
     html_body: str,
 ):
 
-    if not EMAIL_ADDRESS:
-        raise ValueError("EMAIL_ADDRESS is missing.")
-
-    if not EMAIL_APP_PASSWORD:
-        raise ValueError("EMAIL_APP_PASSWORD is missing.")
-
-    if not EMAIL_SMTP_SERVER:
-        raise ValueError("EMAIL_SMTP_SERVER is missing.")
-
-    if not RECIPIENTS:
-        raise ValueError("RECIPIENTS is empty.")
-
+    
     msg = EmailMessage()
 
     msg["From"] = EMAIL_ADDRESS
