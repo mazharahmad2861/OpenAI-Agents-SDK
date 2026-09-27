@@ -295,7 +295,7 @@ MCP extends an agent beyond its built-in capabilities and provides a standardize
 * **MCP** enables standardized connections to external tools and context.
 
 Overall, this project demonstrates how individual LLM calls can evolve into **structured, controlled, and capable multi-agent systems** suitable for real-world workflows. 
-
+# Lab 4 & 5
 # 🔎 Deep Research Agent
 
 A multi-agent **Deep Research system** built with the **OpenAI Agents SDK**, **Groq `gpt-oss-20b`**, and **Tavily**.
