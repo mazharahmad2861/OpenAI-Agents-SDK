@@ -294,4 +294,352 @@ MCP extends an agent beyond its built-in capabilities and provides a standardize
 * **Sandbox Agents** provide controlled execution environments.
 * **MCP** enables standardized connections to external tools and context.
 
-Overall, this project demonstrates how individual LLM calls can evolve into **structured, controlled, and capable multi-agent systems** suitable for real-world workflows.
+Overall, this project demonstrates how individual LLM calls can evolve into **structured, controlled, and capable multi-agent systems** suitable for real-world workflows. 
+
+# 🔎 Deep Research Agent
+
+A multi-agent **Deep Research system** built with the **OpenAI Agents SDK**, **Groq `gpt-oss-20b`**, and **Tavily**.
+
+The system takes a research question, plans multiple searches, executes them in parallel, generates a structured research report, and optionally sends the report by email.
+
+---
+
+## 🚀 Overview
+
+This project demonstrates **orchestration by code**.
+
+Instead of using one manager agent to decide the entire workflow, **Python explicitly controls the execution order** using multiple `Runner.run()` calls.
+
+```text
+User Query
+    ↓
+Planner Agent
+    ↓
+Search Agents × N
+    ↓
+Search Results
+    ↓
+Writer Agent
+    ↓
+Structured Report
+    ↓
+Email Agent
+    ↓
+Email / Notification
+```
+
+---
+
+## 🤖 Agents
+
+### 1. Search Agent
+
+Responsible for researching individual search queries.
+
+- Uses **Tavily** for web search
+- Summarizes search results
+- Produces concise research summaries
+
+### 2. Planner Agent
+
+Converts the user's research question into multiple search queries.
+
+Uses **Structured Outputs** with Pydantic:
+
+```text
+WebSearchPlan
+ └── WebSearchItem[]
+      ├── reason
+      └── query
+```
+
+The `reason` explains why each search is useful before generating the actual query.
+
+### 3. Writer Agent
+
+Combines the search results into a comprehensive report.
+
+Returns:
+
+```text
+ReportData
+ ├── short_summary
+ ├── markdown_report
+ └── follow_up_questions
+```
+
+### 4. Email Agent
+
+Takes the generated report and prepares a professional email.
+
+It uses a local `send_email_tool` to send the final report through SMTP, or a push notification when email is disabled.
+
+---
+
+## 🧠 Orchestration by Code
+
+The core idea of the project is **code-based orchestration**.
+
+Python controls the workflow:
+
+```text
+Planner
+   ↓
+Search
+   ↓
+Writer
+   ↓
+Email
+```
+
+The main workflow is essentially:
+
+```text
+run_searches()
+      ↓
+write_report()
+      ↓
+send_report_email()
+```
+
+Each stage is executed through `Runner.run()`.
+
+This approach provides predictable execution because the workflow is explicitly defined in code.
+
+---
+
+## ⚡ Parallel Search
+
+The planner creates multiple searches.
+
+Instead of executing them one after another, the project uses:
+
+```text
+asyncio.gather()
+```
+
+Conceptually:
+
+```text
+Search 1 ──┐
+Search 2 ──┤
+Search 3 ──┼──→ Results
+Search 4 ──┤
+Search 5 ──┘
+```
+
+This allows independent searches to run concurrently.
+
+---
+
+## 📦 Structured Outputs
+
+The project uses **Pydantic models** to make important agent outputs predictable.
+
+### Search Plan
+
+```text
+WebSearchPlan
+    ↓
+WebSearchItem
+    ├── reason
+    └── query
+```
+
+### Research Report
+
+```text
+ReportData
+    ├── short_summary
+    ├── markdown_report
+    └── follow_up_questions
+```
+
+Instead of relying entirely on free-form text, the application receives structured data that Python can reliably consume.
+
+---
+
+## 🔧 Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| OpenAI Agents SDK | Agent creation and orchestration |
+| Groq `gpt-oss-20b` | LLM |
+| Tavily | Web search |
+| Pydantic | Structured outputs |
+| asyncio | Parallel search execution |
+| SMTP | Email delivery |
+| Python | Application orchestration |
+| dotenv | Environment configuration |
+
+---
+
+
+
+### `deep_research.py`
+
+Contains:
+
+- Agents
+- Pydantic schemas
+- Tavily search tool
+- Email tool
+- Orchestration functions
+- Main workflow
+
+### `messenger.py`
+
+Contains the email and notification implementation.
+
+### `.env`
+
+Stores API keys and email configuration.
+
+---
+
+## 🔑 Environment Variables
+
+Create a `.env` file:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+TAVILY_API_KEY=your_tavily_api_key
+
+EMAIL_ADDRESS=your_email
+EMAIL_APP_PASSWORD=your_app_password
+RECIPIENTS=recipient@example.com
+```
+
+Keep `.env` out of version control.
+
+---
+
+## ▶️ Running the Project
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then run:
+
+```bash
+python deep_research.py
+```
+
+The system will:
+
+1. Receive the research question
+2. Generate multiple search queries
+3. Search the web using Tavily
+4. Run searches concurrently
+5. Generate a structured research report
+6. Send the report through the Email Agent
+
+---
+
+## 🔄 Complete Workflow
+
+```text
+                    USER QUERY
+                        │
+                        ▼
+                ┌──────────────┐
+                │    PLANNER   │
+                │   Groq 20B   │
+                └──────┬───────┘
+                       │
+                 Search Plan
+                       │
+          ┌────────────┼────────────┐
+          ▼            ▼            ▼
+       Search        Search       Search
+        Agent         Agent        Agent
+          │            │            │
+          └────────────┼────────────┘
+                       │
+                asyncio.gather()
+                       │
+                       ▼
+                Search Results
+                       │
+                       ▼
+                ┌──────────────┐
+                │    WRITER    │
+                │   Groq 20B   │
+                └──────┬───────┘
+                       │
+                  ReportData
+                       │
+                       ▼
+                ┌──────────────┐
+                │    EMAIL     │
+                │    AGENT     │
+                └──────┬───────┘
+                       │
+                 Email Tool
+                       │
+                       ▼
+                    EMAIL
+```
+
+---
+
+## 🎯 Key Concepts Demonstrated
+
+- Multi-agent systems
+- Agent orchestration by code
+- `Runner.run()`
+- Structured Outputs
+- Pydantic models
+- Function tools
+- Web search tools
+- Parallel execution with `asyncio`
+- Agent-to-agent data flow
+- SMTP email automation
+- Tracing with `trace()`
+- Groq OpenAI-compatible API
+- External tool integration with Tavily
+
+---
+
+## 💡 Why This Architecture?
+
+The workflow is known in advance:
+
+```text
+Plan → Search → Write → Send
+```
+
+Therefore, Python handles the deterministic workflow while the LLM handles tasks requiring reasoning.
+
+This makes the system easier to understand, debug, and control than giving a single manager agent responsibility for the entire workflow.
+
+---
+
+## 🔮 Possible Improvements
+
+- Add source citations to the final report
+- Add retry and error handling
+- Add search result deduplication
+- Add research quality evaluation
+- Add configurable search depth
+- Add persistent research history
+- Add a web UI with Streamlit
+- Add FastAPI endpoints
+- Add human approval before sending emails
+- Replace SMTP with a production email service
+- Add observability and cost tracking
+- Add alternative search providers
+- Add more specialized research agents
+
+---
+
+## 📌 Core Takeaway
+
+The main lesson of this project is:
+
+> **Agents perform intelligent tasks; Python orchestrates the workflow.**
+
+The project demonstrates how a complex Agentic AI application can be built from a small number of specialized agents connected through explicit code-based orchestration.
